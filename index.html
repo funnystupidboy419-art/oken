@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>通信表・指導要録 所見作成支援</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header__title">
+    <h1>通信表・指導要録 所見作成支援</h1>
+    <p class="app-header__sub">委員会・係・行事・行動の記録・日常の見取りから所見を組み立てます</p>
+  </div>
+  <div class="app-header__tools">
+    <span id="saveState" class="save-state">—</span>
+    <button type="button" id="btnClearAll" class="btn btn--danger">データを全消去</button>
+  </div>
+</header>
+
+<p class="privacy-bar">
+  <strong>児童生徒の個人情報は入力しません。</strong>
+  管理は<b>出席番号のみ</b>で行い、氏名・住所などは入力欄を設けていません。
+  入力内容はこの端末のブラウザ内にだけ保存され、外部には一切送信されません。
+</p>
+
+<nav class="tabs" id="tabs">
+  <button type="button" class="tab is-active" data-tab="settings">1. 設定</button>
+  <button type="button" class="tab" data-tab="roster">2. 委員会・係</button>
+  <button type="button" class="tab" data-tab="event">3. 行事・行事の係</button>
+  <button type="button" class="tab" data-tab="behavior">4. 行動の記録</button>
+  <button type="button" class="tab" data-tab="observation">5. 日常の見取り</button>
+  <button type="button" class="tab" data-tab="moral">6. 道徳</button>
+  <button type="button" class="tab" data-tab="sougou">7. 総合的な学習</button>
+  <button type="button" class="tab" data-tab="review">8. 所見の確認・出力</button>
+</nav>
+
+<main>
+
+<!-- ================= 設定 ================= -->
+<section class="panel is-active" data-panel="settings">
+  <h2>設定</h2>
+
+  <div class="card">
+    <h3>学級の情報（任意・氏名は入力しません）</h3>
+    <div class="field-row">
+      <label>年度 <input type="text" id="setYear" size="6" placeholder="令和7"></label>
+      <label>学年 <input type="text" id="setGrade" size="4" placeholder="3年"></label>
+      <label>組 <input type="text" id="setClass" size="4" placeholder="1組"></label>
+      <label>学期
+        <select id="setTerm">
+          <option>1学期</option><option>2学期</option><option>3学期</option>
+          <option>前期</option><option>後期</option><option>1年間</option>
+        </select>
+      </label>
+      <label>出席番号の最大 <input type="number" id="setCount" min="1" max="60" value="35" size="4"></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>文字数の設定</h3>
+    <p class="hint">
+      設定した文字数に収まるように文を選びます（超えるときは、下の項目から短い文例に置き換え、それでも収まらない文は使いません）。
+      指導要録は通信表より短く設定するのが一般的です。
+    </p>
+    <table class="mini-table">
+      <thead>
+        <tr><th>所見の種類</th><th>通信表（敬体・です／ます）</th><th>指導要録（常体・だ／である）</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>行動・活動・見取り</th>
+          <td><input type="number" id="limitReport" min="20" max="600" value="120"> 字</td>
+          <td><input type="number" id="limitYouroku" min="20" max="600" value="60"> 字</td>
+        </tr>
+        <tr>
+          <th>道徳</th>
+          <td><input type="number" id="moralLimitReport" min="20" max="600" value="120"> 字</td>
+          <td><input type="number" id="moralLimitYouroku" min="20" max="600" value="60"> 字</td>
+        </tr>
+        <tr>
+          <th>総合的な学習</th>
+          <td><input type="number" id="sougouLimitReport" min="20" max="600" value="120"> 字</td>
+          <td><input type="number" id="sougouLimitYouroku" min="20" max="600" value="60"> 字</td>
+        </tr>
+      </tbody>
+    </table>
+    <label class="check"><input type="checkbox" id="warnShort"> 下限（上限の6割）を下回るときも警告する</label>
+  </div>
+
+  <div class="card">
+    <h3>所見に入れる項目と順番</h3>
+    <p class="hint">
+      学校によって書く順番が違うため、ここで並べ替えます。<b>上にあるものほど優先</b>され、
+      文字数に収まらないときは下の項目から削られます。チェックを外した項目は使いません。
+    </p>
+    <ul class="order-list" id="orderList"></ul>
+  </div>
+
+  <div class="card">
+    <h3>行動の記録の並び順と使い方</h3>
+    <p class="hint">10項目の順番も学校ごとに入れ替えられます。この順番は「4. 行動の記録」の入力表の列の順にもなります。</p>
+    <ul class="order-list order-list--compact" id="behaviorOrderList"></ul>
+    <div class="field-row">
+      <label>所見に入れる項目数（1人あたり）
+        <select id="behaviorMax">
+          <option value="1">1項目</option><option value="2" selected>2項目</option>
+          <option value="3">3項目</option><option value="4">4項目</option>
+        </select>
+      </label>
+      <label>選び方
+        <select id="behaviorPick">
+          <option value="order">上の並び順のとおりに選ぶ</option>
+          <option value="mark">◎を優先して選ぶ</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>結びの文</h3>
+    <label class="check"><input type="checkbox" id="useClosing"> 通信表の所見に結びの一文を添える（例：これからの活躍が楽しみです。）</label>
+    <label class="check"><input type="checkbox" id="moralIntro" checked> 道徳の所見に書き出しの一文を入れる</label>
+    <label class="check"><input type="checkbox" id="moralClosing" checked> 道徳の所見に結びの一文を入れる</label>
+    <label class="check"><input type="checkbox" id="sougouClosing" checked> 総合の所見に結びの一文を入れる</label>
+  </div>
+
+  <div class="card">
+    <h3>データの保存</h3>
+    <p class="hint">入力内容は自動的にこの端末のブラウザに保存されます。別の端末に移すときは、書き出し・読み込みを使ってください。</p>
+    <div class="field-row">
+      <button type="button" class="btn" id="btnExportJson">入力データを書き出す（JSON）</button>
+      <label class="btn btn--file">入力データを読み込む<input type="file" id="fileImportJson" accept="application/json,.json"></label>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 委員会・係 ================= -->
+<section class="panel" data-panel="roster">
+  <h2>委員会・係</h2>
+  <p class="hint">
+    エクセルから範囲をコピーし、貼り付けたい先頭のセルをクリックしてから <b>Ctrl+V</b> で一括入力できます。
+    下の「まとめて貼り付け」から、見出し行を含む表を丸ごと貼り付けることもできます。
+  </p>
+  <details class="paste-box">
+    <summary>まとめて貼り付け（エクセルの表をそのまま）</summary>
+    <p class="hint">1列目を出席番号として読み取ります。見出し行（番号・委員会・役割・活動・係・仕事）があれば自動で対応づけます。</p>
+    <textarea class="paste-area" data-paste="roster" rows="5" placeholder="番号	委員会	役割	活動内容	係	仕事内容"></textarea>
+    <button type="button" class="btn" data-paste-apply="roster">この内容を取り込む</button>
+  </details>
+  <div class="grid-wrap"><table class="grid" id="gridRoster"></table></div>
+</section>
+
+<!-- ================= 行事 ================= -->
+<section class="panel" data-panel="event">
+  <h2>行事・行事の係</h2>
+  <p class="hint">運動会・学習発表会・宿泊学習などの行事名と、その行事で担当した係を入力します（1人あたり3つまで）。</p>
+  <details class="paste-box">
+    <summary>まとめて貼り付け（エクセルの表をそのまま）</summary>
+    <textarea class="paste-area" data-paste="event" rows="5" placeholder="番号	行事1	行事1の係	行事1の頑張り	行事2	行事2の係	行事2の頑張り"></textarea>
+    <button type="button" class="btn" data-paste-apply="event">この内容を取り込む</button>
+  </details>
+  <div class="grid-wrap"><table class="grid" id="gridEvent"></table></div>
+</section>
+
+<!-- ================= 行動の記録 ================= -->
+<section class="panel" data-panel="behavior">
+  <h2>行動の記録</h2>
+  <p class="hint">
+    ◎（十分満足できる）／○（満足できる）を入力します。空欄はその項目について所見を作りません。
+    エクセルからの貼り付けでは ◎ ○ のほか、A・B・@・o なども読み取ります。列の順番は「1. 設定」で変えられます。
+  </p>
+  <details class="paste-box">
+    <summary>まとめて貼り付け（エクセルの表をそのまま）</summary>
+    <textarea class="paste-area" data-paste="behavior" rows="5" placeholder="番号	基本的な生活習慣	健康・体力の向上	…"></textarea>
+    <button type="button" class="btn" data-paste-apply="behavior">この内容を取り込む</button>
+  </details>
+  <div class="grid-wrap"><table class="grid grid--mark" id="gridBehavior"></table></div>
+  <datalist id="markOptions"><option value="◎"></option><option value="○"></option></datalist>
+</section>
+
+<!-- ================= 日常の見取り ================= -->
+<section class="panel" data-panel="observation">
+  <h2>日常の見取り</h2>
+  <p class="hint">
+    その子ならではの具体的な事実を短く書きます。文末は右の「文型」で整えます。
+    「そのまま使う」を選んだときは、入力した敬体の文をそのまま通信表に使い、指導要録用には常体へ自動変換します（変換結果は必ず確認してください）。
+  </p>
+  <details class="paste-box">
+    <summary>まとめて貼り付け（エクセルの表をそのまま）</summary>
+    <textarea class="paste-area" data-paste="observation" rows="5" placeholder="番号	見取り1	見取り2	見取り3"></textarea>
+    <button type="button" class="btn" data-paste-apply="observation">この内容を取り込む</button>
+  </details>
+  <div class="grid-wrap"><table class="grid" id="gridObservation"></table></div>
+</section>
+
+<!-- ================= 道徳 ================= -->
+<section class="panel" data-panel="moral">
+  <h2>道徳（特別の教科 道徳）</h2>
+  <p class="hint">
+    どの教材についての振り返りかを1行ずつ入力します。1人につき何行でも追加できます。
+    道徳の評価は数値ではなく、認め励ます個人内評価として記述します。
+  </p>
+  <details class="paste-box" open>
+    <summary>まとめて貼り付け（エクセルの表をそのまま）</summary>
+    <p class="hint">列の並び：出席番号／教材名／内容項目／児童の振り返り</p>
+    <textarea class="paste-area" data-paste="moral" rows="5" placeholder="番号	教材名	内容項目	児童の振り返り"></textarea>
+    <button type="button" class="btn" data-paste-apply="moral">この内容を取り込む（行を追加）</button>
+  </details>
+  <div class="field-row">
+    <button type="button" class="btn" id="btnAddMoral">行を追加</button>
+    <button type="button" class="btn" id="btnAddMoralAll">全員に同じ教材の行を追加</button>
+  </div>
+  <div class="grid-wrap"><table class="grid" id="gridMoral"></table></div>
+  <datalist id="moralValues"></datalist>
+</section>
+
+<!-- ================= 総合 ================= -->
+<section class="panel" data-panel="sougou">
+  <h2>総合的な学習の時間</h2>
+  <p class="hint">単元名と、その子の探究課題・活動・成果を入力します。1人につき何行でも追加できます。</p>
+  <details class="paste-box" open>
+    <summary>まとめて貼り付け（エクセルの表をそのまま）</summary>
+    <p class="hint">列の並び：出席番号／単元名／探究課題／活動の様子／成果・まとめ</p>
+    <textarea class="paste-area" data-paste="sougou" rows="5" placeholder="番号	単元名	探究課題	活動の様子	成果・まとめ"></textarea>
+    <button type="button" class="btn" data-paste-apply="sougou">この内容を取り込む（行を追加）</button>
+  </details>
+  <div class="field-row">
+    <button type="button" class="btn" id="btnAddSougou">行を追加</button>
+    <button type="button" class="btn" id="btnAddSougouAll">全員に同じ単元の行を追加</button>
+  </div>
+  <div class="grid-wrap"><table class="grid" id="gridSougou"></table></div>
+</section>
+
+<!-- ================= 確認・出力 ================= -->
+<section class="panel" data-panel="review">
+  <h2>所見の確認・出力</h2>
+  <div class="review-toolbar">
+    <button type="button" class="btn btn--primary" id="btnGenerateAll">全員分をまとめて生成</button>
+    <label class="check"><input type="checkbox" id="keepEdited" checked> 手直しした所見は上書きしない</label>
+    <span class="spacer"></span>
+    <label>表示
+      <select id="reviewFilter">
+        <option value="all">すべて</option>
+        <option value="over">文字数オーバーのみ</option>
+        <option value="warn">要確認（警告あり）のみ</option>
+        <option value="empty">未作成のみ</option>
+      </select>
+    </label>
+    <button type="button" class="btn" id="btnExportXlsx">エクセルに出力</button>
+    <button type="button" class="btn" id="btnExportCsv">CSVに出力</button>
+    <button type="button" class="btn" id="btnPrint">印刷</button>
+  </div>
+  <div id="reviewSummary" class="review-summary"></div>
+  <div id="reviewList" class="review-list"></div>
+</section>
+
+</main>
+
+<footer class="app-footer">
+  <p>
+    生成される文は文例の組み合わせです。<b>そのまま使わず、必ず担任が事実と照らして確認・修正</b>してください。
+    個人情報（氏名など）は入力しないでください。
+  </p>
+</footer>
+
+<script src="js/util.js"></script>
+<script src="js/xlsx.js"></script>
+<script src="js/templates.js"></script>
+<script src="js/generate.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
