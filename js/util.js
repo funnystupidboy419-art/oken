@@ -297,7 +297,7 @@
   };
 
   /* ファイルのダウンロード */
-  Util.download = function (filename, blob) {
+  function downloadByAnchor(filename, blob) {
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
@@ -306,6 +306,23 @@
     a.click();
     document.body.removeChild(a);
     setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  /* Claude のプレビュー（Artifact）上では通常のダウンロードリンクが無効化されるため、
+     利用できるときは downloads 機能（保存確認ダイアログ）を使う。
+     それ以外（自分のパソコンでファイルとして開いた場合など）は従来どおりの方法。 */
+  Util.download = function (filename, blob) {
+    if (window.claude && typeof window.claude.use === 'function') {
+      window.claude.use('downloads').then(function (downloads) {
+        if (!downloads) { downloadByAnchor(filename, blob); return; }
+        return downloads.save({ filename: filename, data: blob }).catch(function (err) {
+          if (err && err.code === 'declined') return; /* 保存しない選択。何もしない */
+          alert('保存できませんでした：' + (err && err.message ? err.message : String(err)));
+        });
+      }).catch(function () { downloadByAnchor(filename, blob); });
+      return;
+    }
+    downloadByAnchor(filename, blob);
   };
 
   Util.escapeHtml = function (s) {
