@@ -169,10 +169,16 @@
 
   /* ------------------------------------------------------------------
    * 文字列化
+   *   同じ文末（「〜取り組んでいました。」など）が続くと、まとめて読んだときに
+   *   コピー＆ペーストしたような印象になる。保護者が読む文章として自然に
+   *   なるよう、直前の文と文末が重なる候補は避けて選び直す。
    * ------------------------------------------------------------------ */
-  function renderPart(part, useShort, style, bump) {
-    var list = useShort ? part.short : part.long;
-    var tpl = pick(list, (part.seed || 0) + (bump || 0));
+  function endingKey(text) {
+    /* 文末の述語部分（おおむね最後の8〜10文字）を比較のキーにする */
+    return String(text || '').slice(-9);
+  }
+
+  function renderCandidate(part, tpl, style) {
     var text = U.render(tpl, part.vars, style);
     /* 「そのまま使う」の見取りは、指導要録用に常体へ機械変換する */
     if (part.raw && style === 'plain') text = U.toPlain(text);
@@ -180,14 +186,39 @@
     return text;
   }
 
+  /* 直前の文と文末が同じにならないよう、候補を順にずらしながら選ぶ */
+  function renderPartVaried(part, useShort, style, bump, prevEnding) {
+    var list = useShort ? part.short : part.long;
+    if (!list || !list.length) return { text: '', ending: prevEnding };
+    var n = list.length;
+    var start = (((part.seed || 0) + (bump || 0)) % n + n) % n;
+    var fallback = null;
+    for (var k = 0; k < n; k++) {
+      var text = renderCandidate(part, list[(start + k) % n], style);
+      if (fallback === null) fallback = text;
+      if (!text) continue;
+      if (!prevEnding || endingKey(text) !== prevEnding) {
+        return { text: text, ending: endingKey(text) };
+      }
+    }
+    return { text: fallback, ending: endingKey(fallback) };
+  }
+
   function assemble(parts, limit, style, bumps) {
+    var prevLongEnding = null;
+    var prevShortEnding = null;
     var rendered = parts.map(function (p) {
+      var bump = bumps && bumps[p.cat];
+      var longR = renderPartVaried(p, false, style, bump, prevLongEnding);
+      var shortR = renderPartVaried(p, true, style, bump, prevShortEnding);
+      if (longR.text) prevLongEnding = longR.ending;
+      if (shortR.text) prevShortEnding = shortR.ending;
       return {
         cat: p.cat,
         label: p.label,
         detail: p.detail,
-        longText: renderPart(p, false, style, bumps && bumps[p.cat]),
-        shortText: renderPart(p, true, style, bumps && bumps[p.cat]),
+        longText: longR.text,
+        shortText: shortR.text,
         useShort: false
       };
     }).filter(function (p) { return p.longText || p.shortText; });
